@@ -1,0 +1,126 @@
+---
+title: "Assignment 2"
+author: "OMITI DENIS BASTC01/1104/2021"
+date: "2024-11-15"
+output: word_document
+---
+#Data Pre-processing Processes 
+
+Handling Missing Data: This involves imputing missing values in the dataset.
+Data Normalization: Standardize the numerical features such as weight and BMI.
+Encoding Categorical Variables: Convert any categorical variables (if present) using one-hot encoding. Outlier Detection: Identify and handle outliers using the IQR method.
+
+# Methods for Data Imputation
+
+Mean Imputation.Replace missing values with the mean of the feature.
+Median imputation. Use the median instead, which is robust to outliers.
+Nearest Neighbors (KNN) Imputation: Uses neighboring data points to estimate missing values.
+Generates multiple datasets with imputed values and combines them for analysis
+
+
+
+```{r}
+
+# Load necessary libraries
+library(dplyr)
+
+library(caret)
+#Load the dataset
+
+BMI_Data <- read.csv("BMI-Data.csv")
+data<- read.csv("BMI-Data.csv")
+head(data)
+# View summary of the dataset
+summary(data)
+# Check for missing values
+colSums(is.na(data))
+# Option 1: Impute missing values with mean for numerical features
+data <- data %>%
+  mutate_if(is.numeric, ~ ifelse(is.na(.), mean(., na.rm = TRUE), .))
+
+# Option 2: Remove rows with missing values (if missing values are not many)
+# data <- na.omit(data)
+# Identify numerical columns
+num_cols <- sapply(data, is.numeric)
+
+# Standardize numerical features
+data[num_cols] <- scale(data[num_cols])
+# Check the structure of the dataset to identify column types
+str(data)
+
+# Convert "Weight" and "Bmi" columns to numeric if they are not already
+data$Weight <- as.numeric(as.character(data$Weight))
+data$Bmi <- as.numeric(as.character(data$Bmi))
+
+
+
+# Perform Mean Imputation for missing values
+data$Weight[is.na(data$Weight)] <- mean(data$Weight, na.rm = TRUE)
+data$Bmi[is.na(data$Bmi)] <- mean(data$Bmi, na.rm = TRUE)
+
+# Check if missing values are handled correctly
+sum(is.na(data$Weight))
+sum(is.na(data$Bmi))
+# Simple Linear Regression
+model <- lm(Bmi ~ Weight, data = data)
+
+# Model Summary
+summary(model)
+# Extract the coefficients
+intercept <- coef(model)[1]
+slope <- coef(model)[2]
+
+# Print the equation of the fitted model
+cat("The equation of the fitted model is: Bmi = ", round(intercept, 2), "+", round(slope, 2), "* Weight\n")
+
+# Prediction for Weight = 200
+predicted_bmi <- predict(model, newdata = data.frame(Weight = 200))
+predicted_bmi
+# Extract Residuals
+residuals <- residuals(model)
+# 1. Linearity: Plot Residuals vs. Fitted Values
+plot(fitted(model), residuals,
+     main = "Residuals vs Fitted Values",
+     xlab = "Fitted Values",
+     ylab = "Residuals",
+     pch = 19,
+     col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+
+# Interpretation:
+# Since the residuals are randomly scattered around the horizontal line (y = 0), it suggests linearity.
+
+# 2. Normality of Residuals: Q-Q Plot
+qqnorm(residuals, main = "Q-Q Plot of Residuals")
+qqline(residuals, col = "red", lwd = 2)
+
+# Interpretation:
+# Since the points lie approximately along the 45-degree line, the residuals are normally distributed.
+
+# 3. Homoscedasticity: Scale-Location Plot
+plot(fitted(model), sqrt(abs(residuals)),
+     main = "Scale-Location Plot",
+     xlab = "Fitted Values",
+     ylab = "Sqrt(|Residuals|)",
+     pch = 19,
+     col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+
+# Interpretation:
+# A horizontal line pattern suggests homoscedasticity (constant variance)
+
+# MLE example using optim() for a normal distribution
+log_likelihood <- function(params) {
+  mu <- params[1]
+  sigma <- params[2]
+  -sum(dnorm(data$Bmi, mean = mu, sd = sigma, log = TRUE)) # Negative log-likelihood
+}
+
+# Initial parameter estimates for mu and sigma
+initial_params <- c(mean(data$Bmi), sd(data$Bmi))
+
+# Optimizing the log-likelihood function
+mle_results <- optim(par = initial_params, fn = log_likelihood, method = "BFGS")
+mle_results$par
+```
+
