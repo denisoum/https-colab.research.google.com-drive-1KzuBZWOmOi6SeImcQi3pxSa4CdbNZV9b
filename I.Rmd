@@ -1,0 +1,172 @@
+---
+title: 'ASSIGNMENT V'
+author: "OMITI DENIS"
+date: "2025-01-05"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r}
+# Load necessary libraries
+library(ggplot2)
+library(lmtest)
+library(car) # For Durbin-Watson test
+library(MASS) # For additional diagnostics
+
+# Load the data
+eda_data <- read.csv("eda_data.csv")
+
+# Fit the multiple linear regression model
+model <- lm(Rating ~ avg_salary + age + Founded + Sector, data = eda_data)
+
+# Display the model summary
+summary(model)
+```
+```{R}
+# Extract model coefficients
+coefficients <- coef(model)
+```
+
+```{r}
+# Print the fitted model equation
+cat("Fitted Model Equation: Rating =", coefficients[1], "+", coefficients[2], "* avg_salary +", 
+    coefficients[3], "* age +", coefficients[4], "* Founded +", coefficients[5], "* Sector\n")
+```
+
+#Interpretation of model results
+
+
+R-squared is 0.4796 this indicates that 47.96% variation in ratings is explained by the explanatory variables in the fitted model that is, average salary,age,founded and sector, therefore the model provides moderate fit to the data. 
+
+Adjusted R² penalizes the inclusion of unnecessary predictors. After accounting for the number of predictors, the model explains 46% of the variability in Rating. The small drop from R² indicates that most predictors are contributing meaningfully to the model.
+
+Intercept: -0.554 indicates the baseline rating when all predictors are zero.
+avg_salary: Coefficient (0.000133) is not significant (p-value = 0.825), implying no strong relationship with Rating.
+
+age: Coefficient (0.000859) is marginally significant (p-value = 0.071).
+
+Founded: Coefficient (0.000147) is significant (p-value = 0.006), suggesting older companies may have slightly higher ratings.
+
+Sector: Most sector coefficients are highly significant, indicating that industry type strongly influences ratings. 
+
+The intercept having the p_values 0.00541 less than 0.05 suggest that it is statistically significant in the model
+
+The predictor variables founded and Sector also has p_values less than 0.05 indicating that they are statistically significant in the model.
+
+F-statistic has Value: 24.37 (p-value < 2.2e-16) less than 0.05 indicates that the model is statistically significant, meaning at least one predictor is strongly associated with Rating.
+
+Residual Standard Error (RSE) has Value: 0.5888, this indicates that the model's predictions deviate from the observed Rating by about 0.589 units on average.
+
+```{r}
+# Plot residuals vs fitted values
+plot(model$fitted.values, model$residuals, 
+     xlab = "Fitted values", ylab = "Residuals", 
+     main = "Residuals vs Fitted")
+abline(h = 0, col = "red")
+```
+
+
+#Interpretation
+
+
+Residuals range from -4.919 to 4.142, with a median near zero, suggesting no major skewness.
+```{r}
+
+# Q-Q plot for normality
+qqnorm(model$residuals)
+qqline(model$residuals, col = "blue")
+```
+
+
+#Interpretation
+
+
+Since the residuals lie close to the line in the Q-Q plot, it indicates that there is normality.
+```{r}
+
+# Perform Breusch-Pagan test for homoscedasticity
+bptest(model)
+```
+
+
+#Interpretation
+
+
+BP=36.529,p-value=0.1042: Residual variance is homoscedastic (constant variance), since the BP value is higher and the the p_value is greater than 0.05.
+```{r}
+
+# Generate diagnostic plots
+par(mfrow = c(2, 2)) # Set plot layout
+plot(model) # This will generate diagnostic plots
+```
+
+
+#interpretation
+
+
+Residuals vs. Fitted: No clear pattern, indicating linearity assumption holds.
+
+Q-Q Plot: Deviations suggest residuals deviate from normality.
+
+Histogram of Residuals: Confirms lack of normality.
+
+Scale-Location Plot: Shows some heteroscedasticity, but Breusch-Pagan suggests it's not severe.
+
+Autocorrelation Plot: No major lags in residual autocorrelation.
+```{r}
+# Test assumptions of linear regression
+
+# 1. Linearity assumption
+plot(eda_data$avg_salary, eda_data$Rating, 
+     main = "Scatter plot of avg_salary vs Rating",
+     xlab = "avg_salary", ylab = "Rating")
+abline(lm(Rating ~ avg_salary, data = eda_data), col = "red")
+```
+```{r}
+# 2. Normality of residuals
+hist(model$residuals, breaks = 20, main = "Histogram of Residuals", 
+     xlab = "Residuals", col = "blue")
+shapiro.test(model$residuals)  # Shapiro-Wilk test for normality
+```
+
+
+#Interpretation
+
+
+W=0.882,p-value<2.2e−16: Residuals are not normally distributed.
+
+```{r}
+# 3. Homoscedasticity
+plot(model$fitted.values, abs(model$residuals), 
+     xlab = "Fitted values", ylab = "Absolute Residuals", 
+     main = "Scale-Location Plot")
+abline(h = 0, col = "red")
+bptest(model)  # Breusch-Pagan test
+```
+
+```{r}
+# 4. Independence of residuals
+acf(model$residuals, main = "Autocorrelation of Residuals")
+durbinWatsonTest(model)  # Durbin-Watson test for autocorrelation
+
+```
+
+
+#Interpretation
+
+
+D-W statistic=1.985,p-value=0.852:  No significant autocorrelation in residuals since the D-W value 1.985 is very close to 2 with p-value greater than 0.05.
+```{r}
+# 5. Multicollinearity
+vif_values <- vif(model)
+print(vif_values)
+```
+
+
+#Interpretation
+
+
+Since all the vif values are less than 5 it indicates that no multicollinearity that is there is no significant relationships among the predictors.
+
